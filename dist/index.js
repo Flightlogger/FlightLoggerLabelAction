@@ -3815,6 +3815,8 @@ function run() {
             }
             console.log("Payload action: " + payload.action);
             console.log("Payload changes: " + JSON.stringify(payload.changes, undefined, 2));
+            console.log("\nPayload:\n");
+            console.log(JSON.stringify(payload, undefined, 2));
         }
         catch (error) {
             _actions_core__WEBPACK_IMPORTED_MODULE_0__.error(error);

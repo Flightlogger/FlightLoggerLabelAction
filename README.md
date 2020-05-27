@@ -52,6 +52,8 @@ on:
     types: [opened, edited, review_requested]
   pull_request_review:
     types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
 
 jobs:
   triage:
