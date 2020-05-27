@@ -4,6 +4,20 @@ This action labels pull requests and their linked issues if the pull request com
 
 It could be used by other repos, but it is really only designed for internal use at FlightLogger.
 
+## Contributing
+
+First run yarn to install dependencies:
+```
+yarn
+```
+
+If you've changed index.ts or other related javascript or typescript you have to run ncc to compile the project into a single js file:
+```
+ncc build index.ts
+```
+
+Afterwards you need to git add the dist/index.js file
+
 ## Inputs
 
 ### `repo-token`
