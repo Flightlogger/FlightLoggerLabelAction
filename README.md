@@ -44,6 +44,8 @@ The name of the review label
 
 ## Example usage
 
+In production: (Rememeber to update the version tag)
+
 ```yml
 name: "FlightBot"
 
@@ -61,7 +63,36 @@ jobs:
     name: Label PR and Issues
     steps:
       - name: Label pull request and related issues
-        uses: Jensenks/FlightLoggerLabelAction@v1.1
+        uses: Flightlogger/FlightLoggerLabelAction@v1.1
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          review-trigger: "please review"
+          merge-label: "5: Ready for merge"
+          review-label: "6: PR for review"
+```
+
+In development: (Uses the action version in the PR)
+
+```yml
+name: "FlightBot"
+
+on: 
+  pull_request:
+    types: [opened, edited, review_requested]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    name: Label PR and Issues
+    steps:
+      - name: Checkout # Only needed for development use
+        uses: actions/checkout@v2
+      - name: Label pull request and related issues
+        uses: ./
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           review-trigger: "please review"
