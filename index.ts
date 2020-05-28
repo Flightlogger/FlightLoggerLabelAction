@@ -21,9 +21,9 @@ async function run() {
     const token = core.getInput('repo-token', {required: true});
     const client = new github.GitHub(token);
 
-    if (context.eventName == PULL_REQUEST_EVENT) {
+    if (context.eventName == PULL_REQUEST_EVENT && REVIEW_LABEL_ACTIONS.includes(payload.action)) {
       await applyReviewLabels(client, payload);
-    } else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(context.action)) {
+    } else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(payload.action)) {
       await applyMergeLabels(client, payload);
     }
 
@@ -95,7 +95,8 @@ function logDebuggingInfo(context: any) { // context has type Context
   console.log("Running FlightLogger Label Action...");
   console.log("Event activated by: " + context.actor);
   console.log("Event name: " + context.eventName);
-  console.log("Event action: " + context.action);
+  console.log("Payload action: " + context.payload.action);
+  console.log("Context action: " + context.action);
   console.log("Payload changes: " + JSON.stringify(context.payload.changes, undefined, 2));
 }
 
