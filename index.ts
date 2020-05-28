@@ -1,47 +1,62 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
+import { WebhookPayload } from '@actions/github/lib/interfaces';
 
 const LINKED_ISSUES_REGEX = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #(\d+)/g;
 const REGEX_MATCH_ID_INDEX = 2;
+const PULL_REQUEST_EVENT = "pull_request";
+const PULL_REQUEST_REVIEW_EVENT = "pull_request_review";
+const REVIEW_LABEL_ACTIONS = ["opened", "edited"];
+const MERGE_LABEL_ACTIONS = ["submitted"];
 
 async function run() {
   try {
-    console.log("Running labeler...");
-    const payload = github.context.payload;
+    const context = github.context;
+    const payload = context.payload;
+    logDebuggingInfo(payload);
     if (!payload.pull_request) {
       console.log("No payload pull request. Exiting...");
       return;
     }
     const token = core.getInput('repo-token', {required: true});
-    const reviewTrigger = core.getInput('review-trigger', {required: true});
-    const mergeLabel = core.getInput('merge-label', {required: true});
-    const reviewLabel = core.getInput('review-label', {required: true});
-    
     const client = new github.GitHub(token);
-    const pullRequest = payload.pull_request;
-    
-    if(pullRequest.body.toLowerCase().includes(reviewTrigger.toLowerCase())) {
-      console.log("Found review trigger!");
-      const linkedIssues = getLinkedIssues(pullRequest.body);
-      console.log("Adding review label to PR and linked issues...");
-      await addLabels(client, pullRequest.number, [reviewLabel]);
-      linkedIssues.forEach(async (value) => {
-        await addLabels(client, value, [reviewLabel]) 
-      })
-    }
-    console.log("context.action: " + github.context.action);
-    console.log("context.actor: " + github.context.actor);
-    console.log("context.eventName: " + github.context.eventName);
-    console.log("context.workflow: " + github.context.workflow);
 
-    console.log("Payload action: " + payload.action);
-    console.log("Payload changes: " + JSON.stringify(payload.changes, undefined, 2));
-    // console.log("\nPayload:\n");
-    // console.log(JSON.stringify(payload, undefined, 2));
+    if (context.eventName == PULL_REQUEST_EVENT && REVIEW_LABEL_ACTIONS.includes(context.action)) {
+      await applyReviewLabels(client, payload);
+    } else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(context.action)) {
+      await applyMergeLabels(client, payload);
+    }
   } catch (error) {
     core.error(error);
     core.setFailed(error.message);
   }
+}
+
+async function applyReviewLabels(client: github.GitHub, payload: WebhookPayload) {
+  const reviewLabel = core.getInput('review-label', {required: true});
+  const reviewTrigger = core.getInput('review-trigger', {required: true});
+  const pullRequest = payload.pull_request;
+
+  if(pullRequest.body.toLowerCase().includes(reviewTrigger.toLowerCase())) {
+    console.log(`Found review trigger in PR body: ${reviewTrigger}`);
+    await labelPRAndLinkedIssues(client, payload, reviewLabel);
+  }
+}
+
+async function applyMergeLabels(client: github.GitHub, payload: WebhookPayload) {
+  const mergeLabel = core.getInput('merge-label', {required: true});
+  await labelPRAndLinkedIssues(client, payload, mergeLabel);
+}
+
+async function labelPRAndLinkedIssues(client: github.GitHub, payload: WebhookPayload, label: string) {
+  const pullRequest = payload.pull_request;
+  const linkedIssues = getLinkedIssues(pullRequest.body);
+  console.log(`Adding '${label}' label to PR: ${pullRequest.number}...`);
+  await addLabels(client, pullRequest.number, [label]);
+  linkedIssues.forEach(async (value) => {
+    console.log(`Adding '${label}' label to issue: ${value}...`);
+    await addLabels(client, value, [label]) 
+  })
 }
 
 async function addLabels(
@@ -72,5 +87,13 @@ function getLinkedIssues(body: string): number[] {
   console.log("Finished looking for linked issues.");
   return result;
 };
+
+function logDebuggingInfo(payload: WebhookPayload) {
+  console.log("Running FlightLogger Label Action...");
+  console.log("Event activated by: " + payload.context.actor);
+  console.log("Event name: " + payload.context.eventName);
+  console.log("Event action: " + payload.context.action);
+  console.log("Payload changes: " + JSON.stringify(payload.changes, undefined, 2));
+}
 
 run();
