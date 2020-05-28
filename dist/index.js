@@ -3798,7 +3798,7 @@ function run() {
         try {
             const context = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context;
             const payload = context.payload;
-            logDebuggingInfo(payload);
+            logDebuggingInfo(context);
             if (!payload.pull_request) {
                 console.log("No payload pull request. Exiting...");
                 return;
@@ -3874,12 +3874,12 @@ function getLinkedIssues(body) {
     return result;
 }
 ;
-function logDebuggingInfo(payload) {
+function logDebuggingInfo(context) {
     console.log("Running FlightLogger Label Action...");
-    console.log("Event activated by: " + payload.context.actor);
-    console.log("Event name: " + payload.context.eventName);
-    console.log("Event action: " + payload.context.action);
-    console.log("Payload changes: " + JSON.stringify(payload.changes, undefined, 2));
+    console.log("Event activated by: " + context.actor);
+    console.log("Event name: " + context.eventName);
+    console.log("Event action: " + context.action);
+    console.log("Payload changes: " + JSON.stringify(context.payload.changes, undefined, 2));
 }
 run();
 
