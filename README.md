@@ -89,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Label PR and Issues
     steps:
-      - name: Checkout # Only needed for development use
+      - name: Checkout # Only needed for development use 
         uses: actions/checkout@v2
       - name: Label pull request and related issues
         uses: ./
