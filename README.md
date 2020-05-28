@@ -51,11 +51,9 @@ name: "FlightBot"
 
 on: 
   pull_request:
-    types: [opened, edited, review_requested]
+    types: [opened, edited]
   pull_request_review:
-    types: [submitted, edited, dismissed]
-  pull_request_review_comment:
-    types: [created, edited, deleted]
+    types: [submitted]
 
 jobs:
   triage:
@@ -63,7 +61,7 @@ jobs:
     name: Label PR and Issues
     steps:
       - name: Label pull request and related issues
-        uses: Flightlogger/FlightLoggerLabelAction@v1.1
+        uses: Flightlogger/FlightLoggerLabelAction@v1.2
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           review-trigger: "please review"
@@ -71,7 +69,7 @@ jobs:
           review-label: "6: PR for review"
 ```
 
-In development: (Uses the action version in the PR)
+In development: (Uses the action version in the PR. Also listens on more event that could be used for future )
 
 ```yml
 name: "FlightBot"
