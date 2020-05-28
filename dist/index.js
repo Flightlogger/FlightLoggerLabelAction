@@ -3805,7 +3805,7 @@ function run() {
             }
             const token = _actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput('repo-token', { required: true });
             const client = new _actions_github__WEBPACK_IMPORTED_MODULE_1__.GitHub(token);
-            if (context.eventName == PULL_REQUEST_EVENT && REVIEW_LABEL_ACTIONS.includes(context.action)) {
+            if (context.eventName == PULL_REQUEST_EVENT) {
                 yield applyReviewLabels(client, payload);
             }
             else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(context.action)) {

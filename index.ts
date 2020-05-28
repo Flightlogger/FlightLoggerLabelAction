@@ -21,7 +21,7 @@ async function run() {
     const token = core.getInput('repo-token', {required: true});
     const client = new github.GitHub(token);
 
-    if (context.eventName == PULL_REQUEST_EVENT && REVIEW_LABEL_ACTIONS.includes(context.action)) {
+    if (context.eventName == PULL_REQUEST_EVENT) {
       await applyReviewLabels(client, payload);
     } else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(context.action)) {
       await applyMergeLabels(client, payload);
