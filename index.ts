@@ -8,6 +8,7 @@ const PULL_REQUEST_EVENT = "pull_request";
 const PULL_REQUEST_REVIEW_EVENT = "pull_request_review";
 const REVIEW_LABEL_ACTIONS = ["opened", "edited"];
 const MERGE_LABEL_ACTIONS = ["submitted"];
+const APPROVED_STATE = "approved";
 
 async function run() {
   try {
@@ -24,11 +25,9 @@ async function run() {
     if (context.eventName == PULL_REQUEST_EVENT && REVIEW_LABEL_ACTIONS.includes(payload.action)) {
       await applyReviewLabels(client, payload);
     } else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(payload.action)) {
+      if (!payload.review || payload.review.state != APPROVED_STATE) return;
       await applyMergeLabels(client, payload);
     }
-
-    console.log("\nContext:\n");
-    console.log(JSON.stringify(context, undefined, 2));
   } catch (error) {
     core.error(error);
     core.setFailed(error.message);
@@ -98,6 +97,9 @@ function logDebuggingInfo(context: any) { // context has type Context
   console.log("Payload action: " + context.payload.action);
   console.log("Context action: " + context.action);
   console.log("Payload changes: " + JSON.stringify(context.payload.changes, undefined, 2));
+  if (context.payload.review) {
+    console.log("Review state: " + context.payload.review.state);
+  }
 }
 
 run();

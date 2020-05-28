@@ -3793,6 +3793,7 @@ const PULL_REQUEST_EVENT = "pull_request";
 const PULL_REQUEST_REVIEW_EVENT = "pull_request_review";
 const REVIEW_LABEL_ACTIONS = ["opened", "edited"];
 const MERGE_LABEL_ACTIONS = ["submitted"];
+const APPROVED_STATE = "approved";
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -3809,10 +3810,10 @@ function run() {
                 yield applyReviewLabels(client, payload);
             }
             else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(payload.action)) {
+                if (!payload.review || payload.review.state != APPROVED_STATE)
+                    return;
                 yield applyMergeLabels(client, payload);
             }
-            console.log("\nContext:\n");
-            console.log(JSON.stringify(context, undefined, 2));
         }
         catch (error) {
             _actions_core__WEBPACK_IMPORTED_MODULE_0__.error(error);
@@ -3883,6 +3884,9 @@ function logDebuggingInfo(context) {
     console.log("Payload action: " + context.payload.action);
     console.log("Context action: " + context.action);
     console.log("Payload changes: " + JSON.stringify(context.payload.changes, undefined, 2));
+    if (context.payload.review) {
+        console.log("Review state: " + context.payload.review.state);
+    }
 }
 run();
 
