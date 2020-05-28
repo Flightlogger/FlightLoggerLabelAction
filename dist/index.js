@@ -3811,6 +3811,8 @@ function run() {
             else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(context.action)) {
                 yield applyMergeLabels(client, payload);
             }
+            console.log("\nContext:\n");
+            console.log(JSON.stringify(context, undefined, 2));
         }
         catch (error) {
             _actions_core__WEBPACK_IMPORTED_MODULE_0__.error(error);

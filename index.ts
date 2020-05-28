@@ -26,6 +26,9 @@ async function run() {
     } else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(context.action)) {
       await applyMergeLabels(client, payload);
     }
+
+    console.log("\nContext:\n");
+    console.log(JSON.stringify(context, undefined, 2));
   } catch (error) {
     core.error(error);
     core.setFailed(error.message);
