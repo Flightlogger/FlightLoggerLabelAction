@@ -29,11 +29,15 @@ async function run() {
         await addLabels(client, value, [reviewLabel]) 
       })
     }
+    console.log("context.action: " + github.context.action);
+    console.log("context.actor: " + github.context.actor);
+    console.log("context.eventName: " + github.context.eventName);
+    console.log("context.workflow: " + github.context.workflow);
 
     console.log("Payload action: " + payload.action);
     console.log("Payload changes: " + JSON.stringify(payload.changes, undefined, 2));
-    console.log("\nPayload:\n");
-    console.log(JSON.stringify(payload, undefined, 2));
+    // console.log("\nPayload:\n");
+    // console.log(JSON.stringify(payload, undefined, 2));
   } catch (error) {
     core.error(error);
     core.setFailed(error.message);

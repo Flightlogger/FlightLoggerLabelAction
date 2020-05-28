@@ -3813,10 +3813,14 @@ function run() {
                     yield addLabels(client, value, [reviewLabel]);
                 }));
             }
+            console.log("context.action: " + _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.action);
+            console.log("context.actor: " + _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.actor);
+            console.log("context.eventName: " + _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.eventName);
+            console.log("context.workflow: " + _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.workflow);
             console.log("Payload action: " + payload.action);
             console.log("Payload changes: " + JSON.stringify(payload.changes, undefined, 2));
-            console.log("\nPayload:\n");
-            console.log(JSON.stringify(payload, undefined, 2));
+            // console.log("\nPayload:\n");
+            // console.log(JSON.stringify(payload, undefined, 2));
         }
         catch (error) {
             _actions_core__WEBPACK_IMPORTED_MODULE_0__.error(error);
