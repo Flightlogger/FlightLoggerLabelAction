@@ -1,14 +1,22 @@
-import * as core from '@actions/core';
-import * as github from '@actions/github';
-import { WebhookPayload } from '@actions/github/lib/interfaces';
+import * as core from "@actions/core";
+import * as github from "@actions/github";
+import { WebhookPayload } from "@actions/github/lib/interfaces";
+import { labelPRAndLinkedIssues, removeLabelFromPRAndLinkedIssues } from "./labeler";
 
-const LINKED_ISSUES_REGEX = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #(\d+)/g;
-const REGEX_MATCH_ID_INDEX = 2;
+// event: pull_request
+// types: [opened, edited, ready_for_review, review_requested]
 const PULL_REQUEST_EVENT = "pull_request";
+const OPENED_TYPE = "opened";
+const EDITED_TYPE = "edited";
+const READY_FOR_REVIEW_TYPE = "ready_for_review";
+const REVIEW_REQUESTED_TYPE = "review_requested";
+const PR_TEXT_EDITED_ACTIONS = [OPENED_TYPE, EDITED_TYPE];
+
+// event: pull_request_review:
+// types: [submitted, edited, dismissed]
 const PULL_REQUEST_REVIEW_EVENT = "pull_request_review";
-const PULL_REQUEST_READY_FOR_REVIEW = "ready_for_review";
-const REVIEW_LABEL_ACTIONS = ["opened", "edited", PULL_REQUEST_READY_FOR_REVIEW];
-const MERGE_LABEL_ACTIONS = ["submitted"];
+const SUBMITTED_TYPE = "submitted";
+const DISMISSED_TYPE = "dismissed";
 const APPROVED_STATE = "approved";
 
 async function run() {
@@ -21,15 +29,14 @@ async function run() {
       console.log("No payload pull request. Exiting...");
       return;
     }
-    const token = core.getInput('repo-token', {required: true});
+    const token = core.getInput("repo-token", { required: true });
     const client = new github.GitHub(token);
 
-    // Handle action
-    if (context.eventName == PULL_REQUEST_EVENT && REVIEW_LABEL_ACTIONS.includes(payload.action)) {
-      await applyReviewLabels(client, payload);
-    } else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(payload.action)) {
-      if (!payload.review || payload.review.state != APPROVED_STATE) return;
-      await applyMergeLabels(client, payload);
+    // Handle events
+    if (context.eventName == PULL_REQUEST_EVENT) {
+      await handlePullRequestEvent(client, payload);
+    } else if (context.eventName == PULL_REQUEST_REVIEW_EVENT) {
+      await handlePullRequestReviewEvent(client, payload);
     }
   } catch (error) {
     core.error(error);
@@ -37,68 +44,55 @@ async function run() {
   }
 }
 
-async function applyReviewLabels(client: github.GitHub, payload: WebhookPayload) {
-  const reviewLabel = core.getInput('review-label', {required: true});
-  const reviewTrigger = core.getInput('review-trigger', {required: true});
-  const pullRequest = payload.pull_request;
-  if (payload.action == PULL_REQUEST_READY_FOR_REVIEW) {
-    console.log(`Draft PR marked as ready for review`);
+async function handlePullRequestEvent(client: github.GitHub, payload: WebhookPayload) {
+  const reviewLabel = core.getInput("review-label", { required: true });
+
+  if (payload.action == READY_FOR_REVIEW_TYPE) {
+    console.log(`Draft PR marked as ready for review. Adding review label...`);
     await labelPRAndLinkedIssues(client, payload, reviewLabel);
     return;
   }
 
-  if (pullRequest.body.toLowerCase().includes(reviewTrigger.toLowerCase())) {
-    console.log(`Found review trigger in PR body: ${reviewTrigger}`);
+  if (payload.action == REVIEW_REQUESTED_TYPE) {
+    console.log(`Requested review for PR. Adding review label...`);
     await labelPRAndLinkedIssues(client, payload, reviewLabel);
+    return;
+  }
+
+  const reviewTrigger = core.getInput("review-trigger", { required: true });
+  const prBody = payload.pullRequest.body.toLowerCase();
+  if (PR_TEXT_EDITED_ACTIONS.includes(payload.action) && prBody.includes(reviewTrigger.toLowerCase())) {
+    console.log(`Found review trigger '${reviewTrigger}' in PR body. Adding review label...`);
+    await labelPRAndLinkedIssues(client, payload, reviewLabel);
+    return;
   }
 }
 
-async function applyMergeLabels(client: github.GitHub, payload: WebhookPayload) {
-  const mergeLabel = core.getInput('merge-label', {required: true});
-  await labelPRAndLinkedIssues(client, payload, mergeLabel);
-}
+async function handlePullRequestReviewEvent(client: github.GitHub, payload: WebhookPayload) {
+  const reviewLabel = core.getInput("review-label", { required: true });
 
-async function labelPRAndLinkedIssues(client: github.GitHub, payload: WebhookPayload, label: string) {
-  const pullRequest = payload.pull_request;
-  const linkedIssues = getLinkedIssues(pullRequest.body);
-  console.log(`Adding '${label}' label to PR: ${pullRequest.number}...`);
-  await addLabels(client, pullRequest.number, [label]);
-  linkedIssues.forEach(async (value) => {
-    console.log(`Adding '${label}' label to issue: ${value}...`);
-    await addLabels(client, value, [label]) 
-  })
-}
+  if (payload.action == DISMISSED_TYPE) {
+    console.log(`Previous review dismissed. Adding review label...`);
+    await labelPRAndLinkedIssues(client, payload, reviewLabel);
+    return;
+  }
 
-async function addLabels(
-  client: github.GitHub,
-  prNumber: number,
-  labels: string[]
-) {
-  try {
-    await client.issues.addLabels({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      issue_number: prNumber,
-      labels: labels
-    });
-  } catch (error) {
-    console.log(`Could not add label to issue/pr ${prNumber}: ${error['name']}`)
+  if (payload.action == SUBMITTED_TYPE && payload.review && payload.review.state != APPROVED_STATE) {
+    console.log(`Non-approval review submitted. Removing review label...`);
+    await removeLabelFromPRAndLinkedIssues(client, payload, reviewLabel);
+    return;
+  }
+
+  const mergeLabel = core.getInput("merge-label", { required: true });
+  if (payload.action == SUBMITTED_TYPE && payload.review && payload.review.state == APPROVED_STATE) {
+    console.log(`Approval review submitted. Added merge label...`);
+    await labelPRAndLinkedIssues(client, payload, mergeLabel);
+    return;
   }
 }
 
-function getLinkedIssues(body: string): number[] {
-  console.log("Finding linked issues...");
-  let match: string[];
-  let result: number[] = [];
-  while (match = LINKED_ISSUES_REGEX.exec(body)) {
-    console.log("Found issue: " + match[REGEX_MATCH_ID_INDEX])
-    result.push(Number(match[REGEX_MATCH_ID_INDEX]))
-  }
-  console.log("Finished looking for linked issues.");
-  return result;
-};
-
-function logDebuggingInfo(context: any) { // context has type Context
+function logDebuggingInfo(context: any) {
+  // context has type Context
   console.log("Running FlightLogger Label Action...");
   console.log("Event activated by: " + context.actor);
   console.log("Event name: " + context.eventName);

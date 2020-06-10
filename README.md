@@ -51,9 +51,9 @@ name: "FlightBot"
 
 on: 
   pull_request:
-    types: [opened, edited]
+    types: [opened, edited, ready_for_review, review_requested]
   pull_request_review:
-    types: [submitted]
+    types: [submitted, dismissed]
 
 jobs:
   triage:

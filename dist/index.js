@@ -40,7 +40,7 @@ module.exports =
 /******/ 	// the startup function
 /******/ 	function startup() {
 /******/ 		// Load entry module and return exports
-/******/ 		return __webpack_require__(433);
+/******/ 		return __webpack_require__(820);
 /******/ 	};
 /******/ 	// initialize runtime
 /******/ 	runtime(__webpack_require__);
@@ -3769,134 +3769,50 @@ exports.debug = debug; // for test
 /***/ }),
 
 /***/ 433:
-/***/ (function(__unusedmodule, __webpack_exports__, __webpack_require__) {
+/***/ (function(module, __unusedexports, __webpack_require__) {
 
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(243);
-/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_actions_core__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(211);
-/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_actions_github__WEBPACK_IMPORTED_MODULE_1__);
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
+module.exports = isexe
+isexe.sync = sync
 
+var fs = __webpack_require__(747)
 
-const LINKED_ISSUES_REGEX = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #(\d+)/g;
-const REGEX_MATCH_ID_INDEX = 2;
-const PULL_REQUEST_EVENT = "pull_request";
-const PULL_REQUEST_REVIEW_EVENT = "pull_request_review";
-const PULL_REQUEST_READY_FOR_REVIEW = "ready_for_review";
-const REVIEW_LABEL_ACTIONS = ["opened", "edited", PULL_REQUEST_READY_FOR_REVIEW];
-const MERGE_LABEL_ACTIONS = ["submitted"];
-const APPROVED_STATE = "approved";
-function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            // Setup
-            const context = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context;
-            const payload = context.payload;
-            logDebuggingInfo(context);
-            if (!payload.pull_request) {
-                console.log("No payload pull request. Exiting...");
-                return;
-            }
-            const token = _actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput('repo-token', { required: true });
-            const client = new _actions_github__WEBPACK_IMPORTED_MODULE_1__.GitHub(token);
-            // Handle action
-            if (context.eventName == PULL_REQUEST_EVENT && REVIEW_LABEL_ACTIONS.includes(payload.action)) {
-                yield applyReviewLabels(client, payload);
-            }
-            else if (context.eventName == PULL_REQUEST_REVIEW_EVENT && MERGE_LABEL_ACTIONS.includes(payload.action)) {
-                if (!payload.review || payload.review.state != APPROVED_STATE)
-                    return;
-                yield applyMergeLabels(client, payload);
-            }
-        }
-        catch (error) {
-            _actions_core__WEBPACK_IMPORTED_MODULE_0__.error(error);
-            _actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed(error.message);
-        }
-    });
-}
-function applyReviewLabels(client, payload) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const reviewLabel = _actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput('review-label', { required: true });
-        const reviewTrigger = _actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput('review-trigger', { required: true });
-        const pullRequest = payload.pull_request;
-        if (payload.action == PULL_REQUEST_READY_FOR_REVIEW) {
-            console.log(`Draft PR marked as ready for review`);
-            yield labelPRAndLinkedIssues(client, payload, reviewLabel);
-            return;
-        }
-        if (pullRequest.body.toLowerCase().includes(reviewTrigger.toLowerCase())) {
-            console.log(`Found review trigger in PR body: ${reviewTrigger}`);
-            yield labelPRAndLinkedIssues(client, payload, reviewLabel);
-        }
-    });
-}
-function applyMergeLabels(client, payload) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const mergeLabel = _actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput('merge-label', { required: true });
-        yield labelPRAndLinkedIssues(client, payload, mergeLabel);
-    });
-}
-function labelPRAndLinkedIssues(client, payload, label) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const pullRequest = payload.pull_request;
-        const linkedIssues = getLinkedIssues(pullRequest.body);
-        console.log(`Adding '${label}' label to PR: ${pullRequest.number}...`);
-        yield addLabels(client, pullRequest.number, [label]);
-        linkedIssues.forEach((value) => __awaiter(this, void 0, void 0, function* () {
-            console.log(`Adding '${label}' label to issue: ${value}...`);
-            yield addLabels(client, value, [label]);
-        }));
-    });
-}
-function addLabels(client, prNumber, labels) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            yield client.issues.addLabels({
-                owner: _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.repo.owner,
-                repo: _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.repo.repo,
-                issue_number: prNumber,
-                labels: labels
-            });
-        }
-        catch (error) {
-            console.log(`Could not add label to issue/pr ${prNumber}: ${error['name']}`);
-        }
-    });
-}
-function getLinkedIssues(body) {
-    console.log("Finding linked issues...");
-    let match;
-    let result = [];
-    while (match = LINKED_ISSUES_REGEX.exec(body)) {
-        console.log("Found issue: " + match[REGEX_MATCH_ID_INDEX]);
-        result.push(Number(match[REGEX_MATCH_ID_INDEX]));
+function checkPathExt (path, options) {
+  var pathext = options.pathExt !== undefined ?
+    options.pathExt : process.env.PATHEXT
+
+  if (!pathext) {
+    return true
+  }
+
+  pathext = pathext.split(';')
+  if (pathext.indexOf('') !== -1) {
+    return true
+  }
+  for (var i = 0; i < pathext.length; i++) {
+    var p = pathext[i].toLowerCase()
+    if (p && path.substr(-p.length).toLowerCase() === p) {
+      return true
     }
-    console.log("Finished looking for linked issues.");
-    return result;
+  }
+  return false
 }
-;
-function logDebuggingInfo(context) {
-    console.log("Running FlightLogger Label Action...");
-    console.log("Event activated by: " + context.actor);
-    console.log("Event name: " + context.eventName);
-    console.log("Payload action: " + context.payload.action);
-    console.log("Context action: " + context.action);
-    console.log("Payload changes: " + JSON.stringify(context.payload.changes, undefined, 2));
-    if (context.payload.review) {
-        console.log("Review state: " + context.payload.review.state);
-    }
+
+function checkStat (stat, path, options) {
+  if (!stat.isSymbolicLink() && !stat.isFile()) {
+    return false
+  }
+  return checkPathExt(path, options)
 }
-run();
+
+function isexe (path, options, cb) {
+  fs.stat(path, function (er, stat) {
+    cb(er, er ? false : checkStat(stat, path, options))
+  })
+}
+
+function sync (path, options) {
+  return checkStat(fs.statSync(path), path, options)
+}
 
 
 /***/ }),
@@ -8479,6 +8395,209 @@ function hasPreviousPage (link) {
 
 /***/ }),
 
+/***/ 820:
+/***/ (function(__unusedmodule, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+// EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
+var core = __webpack_require__(243);
+
+// EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
+var github = __webpack_require__(211);
+
+// CONCATENATED MODULE: ./labeler.ts
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+const LINKED_ISSUES_REGEX = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #(\d+)/g;
+const REGEX_MATCH_ID_INDEX = 2;
+function labelPRAndLinkedIssues(client, payload, label) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const pullRequest = payload.pull_request;
+        const linkedIssues = getLinkedIssues(pullRequest.body);
+        console.log(`Adding '${label}' label to PR: ${pullRequest.number}...`);
+        yield addLabels(client, pullRequest.number, [label]);
+        linkedIssues.forEach((value) => __awaiter(this, void 0, void 0, function* () {
+            console.log(`Adding '${label}' label to issue: ${value}...`);
+            yield addLabels(client, value, [label]);
+        }));
+    });
+}
+function removeLabelFromPRAndLinkedIssues(client, payload, label) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const pullRequest = payload.pull_request;
+        const linkedIssues = getLinkedIssues(pullRequest.body);
+        console.log(`Removing '${label}' label from PR: ${pullRequest.number}...`);
+        yield removeLabel(client, pullRequest.number, label);
+        linkedIssues.forEach((value) => __awaiter(this, void 0, void 0, function* () {
+            console.log(`Removing '${label}' label from issue: ${value}...`);
+            yield removeLabel(client, value, label);
+        }));
+    });
+}
+function addLabels(client, issueNumber, labels) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield client.issues.addLabels({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                issue_number: issueNumber,
+                labels: labels,
+            });
+        }
+        catch (error) {
+            console.log(`Could not add label to issue/pr ${issueNumber}: ${error["name"]}`);
+        }
+    });
+}
+function removeLabel(client, issueNumber, label) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield client.issues.removeLabel({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                issue_number: issueNumber,
+                name: label,
+            });
+        }
+        catch (error) {
+            console.log(`Could not remove label from issue/pr ${issueNumber}: ${error["name"]}`);
+        }
+    });
+}
+function getLinkedIssues(body) {
+    console.log("Finding linked issues...");
+    let match;
+    let result = [];
+    while ((match = LINKED_ISSUES_REGEX.exec(body))) {
+        console.log("Found issue: " + match[REGEX_MATCH_ID_INDEX]);
+        result.push(Number(match[REGEX_MATCH_ID_INDEX]));
+    }
+    console.log("Finished looking for linked issues.");
+    return result;
+}
+
+// CONCATENATED MODULE: ./index.ts
+var index_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+// event: pull_request
+// types: [opened, edited, ready_for_review, review_requested]
+const PULL_REQUEST_EVENT = "pull_request";
+const OPENED_TYPE = "opened";
+const EDITED_TYPE = "edited";
+const READY_FOR_REVIEW_TYPE = "ready_for_review";
+const REVIEW_REQUESTED_TYPE = "review_requested";
+const PR_TEXT_EDITED_ACTIONS = [OPENED_TYPE, EDITED_TYPE];
+// event: pull_request_review:
+// types: [submitted, edited, dismissed]
+const PULL_REQUEST_REVIEW_EVENT = "pull_request_review";
+const SUBMITTED_TYPE = "submitted";
+const DISMISSED_TYPE = "dismissed";
+const APPROVED_STATE = "approved";
+function run() {
+    return index_awaiter(this, void 0, void 0, function* () {
+        try {
+            // Setup
+            const context = github.context;
+            const payload = context.payload;
+            logDebuggingInfo(context);
+            if (!payload.pull_request) {
+                console.log("No payload pull request. Exiting...");
+                return;
+            }
+            const token = Object(core.getInput)("repo-token", { required: true });
+            const client = new github.GitHub(token);
+            // Handle events
+            if (context.eventName == PULL_REQUEST_EVENT) {
+                yield handlePullRequestEvent(client, payload);
+            }
+            else if (context.eventName == PULL_REQUEST_REVIEW_EVENT) {
+                yield handlePullRequestReviewEvent(client, payload);
+            }
+        }
+        catch (error) {
+            Object(core.error)(error);
+            Object(core.setFailed)(error.message);
+        }
+    });
+}
+function handlePullRequestEvent(client, payload) {
+    return index_awaiter(this, void 0, void 0, function* () {
+        const reviewLabel = Object(core.getInput)("review-label", { required: true });
+        if (payload.action == READY_FOR_REVIEW_TYPE) {
+            console.log(`Draft PR marked as ready for review. Adding review label...`);
+            yield labelPRAndLinkedIssues(client, payload, reviewLabel);
+            return;
+        }
+        if (payload.action == REVIEW_REQUESTED_TYPE) {
+            console.log(`Requested review for PR. Adding review label...`);
+            yield labelPRAndLinkedIssues(client, payload, reviewLabel);
+            return;
+        }
+        const reviewTrigger = Object(core.getInput)("review-trigger", { required: true });
+        const prBody = payload.pullRequest.body.toLowerCase();
+        if (PR_TEXT_EDITED_ACTIONS.includes(payload.action) && prBody.includes(reviewTrigger.toLowerCase())) {
+            console.log(`Found review trigger '${reviewTrigger}' in PR body. Adding review label...`);
+            yield labelPRAndLinkedIssues(client, payload, reviewLabel);
+            return;
+        }
+    });
+}
+function handlePullRequestReviewEvent(client, payload) {
+    return index_awaiter(this, void 0, void 0, function* () {
+        const reviewLabel = Object(core.getInput)("review-label", { required: true });
+        if (payload.action == DISMISSED_TYPE) {
+            console.log(`Previous review dismissed. Adding review label...`);
+            yield labelPRAndLinkedIssues(client, payload, reviewLabel);
+            return;
+        }
+        if (payload.action == SUBMITTED_TYPE && payload.review && payload.review.state != APPROVED_STATE) {
+            console.log(`Non-approval review submitted. Removing review label...`);
+            yield removeLabelFromPRAndLinkedIssues(client, payload, reviewLabel);
+            return;
+        }
+        const mergeLabel = Object(core.getInput)("merge-label", { required: true });
+        if (payload.action == SUBMITTED_TYPE && payload.review && payload.review.state == APPROVED_STATE) {
+            console.log(`Approval review submitted. Added merge label...`);
+            yield labelPRAndLinkedIssues(client, payload, mergeLabel);
+            return;
+        }
+    });
+}
+function logDebuggingInfo(context) {
+    // context has type Context
+    console.log("Running FlightLogger Label Action...");
+    console.log("Event activated by: " + context.actor);
+    console.log("Event name: " + context.eventName);
+    console.log("Payload action: " + context.payload.action);
+    console.log("Context action: " + context.action);
+    console.log("Payload changes: " + JSON.stringify(context.payload.changes, undefined, 2));
+    if (context.payload.review) {
+        console.log("Review state: " + context.payload.review.state);
+    }
+}
+run();
+
+
+/***/ }),
+
 /***/ 825:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -8577,7 +8696,7 @@ module.exports = resolveCommand;
 var fs = __webpack_require__(747)
 var core
 if (process.platform === 'win32' || global.TESTING_WINDOWS) {
-  core = __webpack_require__(933)
+  core = __webpack_require__(433)
 } else {
   core = __webpack_require__(203)
 }
@@ -24662,55 +24781,6 @@ exports.checkBypass = checkBypass;
 
 /***/ }),
 
-/***/ 933:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = isexe
-isexe.sync = sync
-
-var fs = __webpack_require__(747)
-
-function checkPathExt (path, options) {
-  var pathext = options.pathExt !== undefined ?
-    options.pathExt : process.env.PATHEXT
-
-  if (!pathext) {
-    return true
-  }
-
-  pathext = pathext.split(';')
-  if (pathext.indexOf('') !== -1) {
-    return true
-  }
-  for (var i = 0; i < pathext.length; i++) {
-    var p = pathext[i].toLowerCase()
-    if (p && path.substr(-p.length).toLowerCase() === p) {
-      return true
-    }
-  }
-  return false
-}
-
-function checkStat (stat, path, options) {
-  if (!stat.isSymbolicLink() && !stat.isFile()) {
-    return false
-  }
-  return checkPathExt(path, options)
-}
-
-function isexe (path, options, cb) {
-  fs.stat(path, function (er, stat) {
-    cb(er, er ? false : checkStat(stat, path, options))
-  })
-}
-
-function sync (path, options) {
-  return checkStat(fs.statSync(path), path, options)
-}
-
-
-/***/ }),
-
 /***/ 941:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -25501,6 +25571,36 @@ module.exports.MaxBufferError = MaxBufferError;
 /******/ 		};
 /******/ 	}();
 /******/ 	
+/******/ 	/* webpack/runtime/define property getter */
+/******/ 	!function() {
+/******/ 		// define getter function for harmony exports
+/******/ 		var hasOwnProperty = Object.prototype.hasOwnProperty;
+/******/ 		__webpack_require__.d = function(exports, name, getter) {
+/******/ 			if(!hasOwnProperty.call(exports, name)) {
+/******/ 				Object.defineProperty(exports, name, { enumerable: true, get: getter });
+/******/ 			}
+/******/ 		};
+/******/ 	}();
+/******/ 	
+/******/ 	/* webpack/runtime/create fake namespace object */
+/******/ 	!function() {
+/******/ 		// create a fake namespace object
+/******/ 		// mode & 1: value is a module id, require it
+/******/ 		// mode & 2: merge all properties of value into the ns
+/******/ 		// mode & 4: return value when already ns object
+/******/ 		// mode & 8|1: behave like require
+/******/ 		__webpack_require__.t = function(value, mode) {
+/******/ 			if(mode & 1) value = this(value);
+/******/ 			if(mode & 8) return value;
+/******/ 			if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
+/******/ 			var ns = Object.create(null);
+/******/ 			__webpack_require__.r(ns);
+/******/ 			Object.defineProperty(ns, 'default', { enumerable: true, value: value });
+/******/ 			if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
+/******/ 			return ns;
+/******/ 		};
+/******/ 	}();
+/******/ 	
 /******/ 	/* webpack/runtime/compat get default export */
 /******/ 	!function() {
 /******/ 		// getDefaultExport function for compatibility with non-harmony modules
@@ -25510,17 +25610,6 @@ module.exports.MaxBufferError = MaxBufferError;
 /******/ 				function getModuleExports() { return module; };
 /******/ 			__webpack_require__.d(getter, 'a', getter);
 /******/ 			return getter;
-/******/ 		};
-/******/ 	}();
-/******/ 	
-/******/ 	/* webpack/runtime/define property getter */
-/******/ 	!function() {
-/******/ 		// define getter function for harmony exports
-/******/ 		var hasOwnProperty = Object.prototype.hasOwnProperty;
-/******/ 		__webpack_require__.d = function(exports, name, getter) {
-/******/ 			if(!hasOwnProperty.call(exports, name)) {
-/******/ 				Object.defineProperty(exports, name, { enumerable: true, get: getter });
-/******/ 			}
 /******/ 		};
 /******/ 	}();
 /******/ 	
