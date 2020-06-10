@@ -7,7 +7,7 @@ const REGEX_MATCH_ID_INDEX = 2;
 const PULL_REQUEST_EVENT = "pull_request";
 const PULL_REQUEST_REVIEW_EVENT = "pull_request_review";
 const PULL_REQUEST_READY_FOR_REVIEW = "ready_for_review";
-const REVIEW_LABEL_ACTIONS = ["opened", "edited"];
+const REVIEW_LABEL_ACTIONS = ["opened", "edited", PULL_REQUEST_READY_FOR_REVIEW];
 const MERGE_LABEL_ACTIONS = ["submitted"];
 const APPROVED_STATE = "approved";
 
