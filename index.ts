@@ -60,7 +60,7 @@ async function handlePullRequestEvent(client: github.GitHub, payload: WebhookPay
   }
 
   const reviewTrigger = core.getInput("review-trigger", { required: true });
-  const prBody = payload.pullRequest.body.toLowerCase();
+  const prBody = payload.pull_request.body.toLowerCase();
   if (PR_TEXT_EDITED_ACTIONS.includes(payload.action) && prBody.includes(reviewTrigger.toLowerCase())) {
     console.log(`Found review trigger '${reviewTrigger}' in PR body. Adding review label...`);
     await labelPRAndLinkedIssues(client, payload, reviewLabel);

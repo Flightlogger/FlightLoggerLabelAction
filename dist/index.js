@@ -8552,7 +8552,7 @@ function handlePullRequestEvent(client, payload) {
             return;
         }
         const reviewTrigger = Object(core.getInput)("review-trigger", { required: true });
-        const prBody = payload.pullRequest.body.toLowerCase();
+        const prBody = payload.pull_request.body.toLowerCase();
         if (PR_TEXT_EDITED_ACTIONS.includes(payload.action) && prBody.includes(reviewTrigger.toLowerCase())) {
             console.log(`Found review trigger '${reviewTrigger}' in PR body. Adding review label...`);
             yield labelPRAndLinkedIssues(client, payload, reviewLabel);
