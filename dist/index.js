@@ -8521,6 +8521,12 @@ const APPROVED_STATE = "approved";
 // types: [reopened]
 const ISSUES_EVENT = "issues";
 const REOPENED_TYPE = "reopened";
+const REPO_TOKEN = "repo-token";
+const REVIEW_TRIGGER = "review-trigger";
+const REOPEN_LABEL = "reopen-label";
+const REVIEW_LABEL = "review-label";
+const MERGE_LABEL = "merge-label";
+const STAGING_LABEL = "staging-label";
 function run() {
     return index_awaiter(this, void 0, void 0, function* () {
         try {
@@ -8528,7 +8534,7 @@ function run() {
             const context = github.context;
             const payload = context.payload;
             logDebuggingInfo(context);
-            const token = Object(core.getInput)("repo-token", { required: true });
+            const token = Object(core.getInput)(REPO_TOKEN, { required: true });
             const client = new github.GitHub(token);
             // Handle events
             if (context.eventName == PULL_REQUEST_EVENT) {
@@ -8549,7 +8555,7 @@ function run() {
 }
 function handlePullRequestEvent(client, payload) {
     return index_awaiter(this, void 0, void 0, function* () {
-        const reviewLabel = Object(core.getInput)("review-label", { required: true });
+        const reviewLabel = Object(core.getInput)(REVIEW_LABEL, { required: true });
         if (payload.action == READY_FOR_REVIEW_TYPE) {
             console.log(`Draft PR marked as ready for review. Adding review label...`);
             yield labelPRAndLinkedIssues(client, payload, reviewLabel);
@@ -8560,20 +8566,19 @@ function handlePullRequestEvent(client, payload) {
             yield labelPRAndLinkedIssues(client, payload, reviewLabel);
             return;
         }
-        const reviewTrigger = Object(core.getInput)("review-trigger", { required: true });
-        const reopenLabel = Object(core.getInput)("reopen-label", { required: true });
+        const reviewTrigger = Object(core.getInput)(REVIEW_TRIGGER, { required: true });
+        const reopenLabel = Object(core.getInput)(REOPEN_LABEL, { required: true });
         const prBody = payload.pull_request.body.toLowerCase();
         if (PR_TEXT_EDITED_ACTIONS.includes(payload.action) && prBody.includes(reviewTrigger.toLowerCase())) {
-            console.log(`Found review trigger '${reviewTrigger}' in PR body. Adding review label and removing reopen label...`);
+            console.log(`Found review trigger '${reviewTrigger}' in PR body. Adding review label...`);
             yield labelPRAndLinkedIssues(client, payload, reviewLabel);
-            yield removeLabelFromLinkedIssues(client, payload, reopenLabel);
             return;
         }
     });
 }
 function handlePullRequestReviewEvent(client, payload) {
     return index_awaiter(this, void 0, void 0, function* () {
-        const reviewLabel = Object(core.getInput)("review-label", { required: true });
+        const reviewLabel = Object(core.getInput)(REVIEW_LABEL, { required: true });
         if (payload.action == DISMISSED_TYPE) {
             console.log(`Previous review dismissed. Adding review label...`);
             yield labelPRAndLinkedIssues(client, payload, reviewLabel);
@@ -8584,7 +8589,7 @@ function handlePullRequestReviewEvent(client, payload) {
             yield removeLabelFromPRAndLinkedIssues(client, payload, reviewLabel);
             return;
         }
-        const mergeLabel = Object(core.getInput)("merge-label", { required: true });
+        const mergeLabel = Object(core.getInput)(MERGE_LABEL, { required: true });
         if (payload.action == SUBMITTED_TYPE && payload.review && payload.review.state == APPROVED_STATE) {
             console.log(`Approval review submitted. Added merge label...`);
             yield labelPRAndLinkedIssues(client, payload, mergeLabel);
@@ -8594,13 +8599,15 @@ function handlePullRequestReviewEvent(client, payload) {
 }
 function handleIssuesEvent(client, payload) {
     return index_awaiter(this, void 0, void 0, function* () {
-        const reviewLabel = Object(core.getInput)("review-label", { required: true });
-        const mergeLabel = Object(core.getInput)("merge-label", { required: true });
-        const reopenLabel = Object(core.getInput)("reopen-label", { required: true });
+        const reviewLabel = Object(core.getInput)(REVIEW_LABEL, { required: true });
+        const mergeLabel = Object(core.getInput)(MERGE_LABEL, { required: true });
+        const reopenLabel = Object(core.getInput)(REOPEN_LABEL, { required: true });
+        const stagingLabel = Object(core.getInput)(STAGING_LABEL, { required: true });
         if (payload.action == REOPENED_TYPE) {
             console.log(`Issue ${payload.issue.number} was reopened. Added reopen label and removing review and merge labels...`);
             yield removeLabel(client, payload.issue.number, reviewLabel);
             yield removeLabel(client, payload.issue.number, mergeLabel);
+            yield removeLabel(client, payload.issue.number, stagingLabel);
             yield addLabels(client, payload.issue.number, [reopenLabel]);
             return;
         }

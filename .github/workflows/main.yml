@@ -20,6 +20,7 @@ jobs:
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           review-trigger: "please review"
+          staging-label: "4: Staging"
           merge-label: "5: Ready for merge"
           review-label: "6: PR for review"
           reopen-label: "Reopen"

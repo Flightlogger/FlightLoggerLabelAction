@@ -7,6 +7,9 @@ inputs:
   review-trigger:
     description: 'The string that triggers the review label'
     default: 'please review'
+  staging-label:
+    description: 'The name of the staging label'
+    default: '4: Staging'
   merge-label:
     description: 'The name of the merge label'
     default: '5: Ready for merge'
