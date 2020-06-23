@@ -47,7 +47,7 @@ async function run() {
       await handlePullRequestReviewEvent(client, payload);
     } else if (context.eventName == ISSUES_EVENT) {
       await handleIssuesEvent(client, payload);
-    } 
+    }
   } catch (error) {
     core.error(error);
     core.setFailed(error.message);
@@ -70,7 +70,6 @@ async function handlePullRequestEvent(client: github.GitHub, payload: WebhookPay
   }
 
   const reviewTrigger = core.getInput(REVIEW_TRIGGER, { required: true });
-  const reopenLabel = core.getInput(REOPEN_LABEL, { required: true });
   const prBody = payload.pull_request.body.toLowerCase();
   if (PR_TEXT_EDITED_ACTIONS.includes(payload.action) && prBody.includes(reviewTrigger.toLowerCase())) {
     console.log(`Found review trigger '${reviewTrigger}' in PR body. Adding review label...`);
@@ -109,14 +108,13 @@ async function handleIssuesEvent(client: github.GitHub, payload: WebhookPayload)
   const stagingLabel = core.getInput(STAGING_LABEL, { required: true });
 
   if (payload.action == REOPENED_TYPE) {
-    console.log(`Issue ${payload.issue.number} was reopened. Added reopen label and removing review and merge labels...`);
+    console.log(`Issue ${payload.issue.number} was reopened. Added reopen label and removing review, merge and staging labels...`);
     await removeLabel(client, payload.issue.number, reviewLabel);
     await removeLabel(client, payload.issue.number, mergeLabel);
     await removeLabel(client, payload.issue.number, stagingLabel);
     await addLabels(client, payload.issue.number, [reopenLabel]);
     return;
   }
-
 }
 
 function logDebuggingInfo(context: any) {
