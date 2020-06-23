@@ -7,12 +7,18 @@ inputs:
   review-trigger:
     description: 'The string that triggers the review label'
     default: 'please review'
+  staging-label:
+    description: 'The name of the staging label'
+    default: '4: Staging'
   merge-label:
     description: 'The name of the merge label'
     default: '5: Ready for merge'
   review-label:
     description: 'The name of the review label'
     default: '6: PR for review'
+  reopen-label:
+    description: 'The name of the reopen label'
+    default: 'Reopen'
 runs:
   using: 'node12'
   main: 'dist/index.js'

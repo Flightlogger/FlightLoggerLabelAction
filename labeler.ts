@@ -17,9 +17,14 @@ export async function labelPRAndLinkedIssues(client: github.GitHub, payload: Web
 
 export async function removeLabelFromPRAndLinkedIssues(client: github.GitHub, payload: WebhookPayload, label: string) {
   const pullRequest = payload.pull_request;
-  const linkedIssues = getLinkedIssues(pullRequest.body);
   console.log(`Removing '${label}' label from PR: ${pullRequest.number}...`);
   await removeLabel(client, pullRequest.number, label);
+  removeLabelFromLinkedIssues(client, payload, label)
+}
+
+export async function removeLabelFromLinkedIssues(client: github.GitHub, payload: WebhookPayload, label: string) {
+  const pullRequest = payload.pull_request;
+  const linkedIssues = getLinkedIssues(pullRequest.body);
   linkedIssues.forEach(async value => {
     console.log(`Removing '${label}' label from issue: ${value}...`);
     await removeLabel(client, value, label);
