@@ -70,6 +70,8 @@ async function handleStatusEvent(client: github.GitHub, payload: WebhookPayload)
   console.log(`Combined status for ${sha} is success. Adding review label to associated open PRs...`);
 
   const branches = payload.branches || [];
+  // The `${owner}:${branch.name}` head filter only matches same-repo (non-fork) branches.
+  // Fork PRs are intentionally not handled, since this action runs on an internal repo.
   for (const branch of branches) {
     const pulls = await client.pulls.list({ owner, repo, state: "open", head: `${owner}:${branch.name}` });
     for (const pull of pulls.data) {
