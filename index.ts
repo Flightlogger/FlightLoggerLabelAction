@@ -24,6 +24,7 @@ const REOPEN_LABEL = "reopen-label";
 const REVIEW_LABEL = "review-label";
 const MERGE_LABEL = "merge-label";
 const STAGING_LABEL = "staging-label";
+const STAGING_QA_TESTED_LABEL = "staging-qa-tested-label"
 
 async function run() {
   try {
@@ -102,12 +103,14 @@ async function handleIssuesEvent(client: github.GitHub, payload: WebhookPayload)
   const mergeLabel = core.getInput(MERGE_LABEL, { required: true });
   const reopenLabel = core.getInput(REOPEN_LABEL, { required: true });
   const stagingLabel = core.getInput(STAGING_LABEL, { required: true });
+  const stagingQaTestedLabel = core.getInput(STAGING_QA_TESTED_LABEL, { required: true });
 
   if (payload.action == REOPENED_TYPE) {
     console.log(`Issue ${payload.issue.number} was reopened. Added reopen label and removing review, merge and staging labels...`);
     await removeLabel(client, payload.issue.number, reviewLabel);
     await removeLabel(client, payload.issue.number, mergeLabel);
     await removeLabel(client, payload.issue.number, stagingLabel);
+    await removeLabel(client, payload.issue.number, stagingQaTestedLabel);
     await addLabels(client, payload.issue.number, [reopenLabel]);
     return;
   }

@@ -7,6 +7,9 @@ inputs:
   staging-label:
     description: 'The name of the staging label'
     default: '4: Staging'
+  staging-qa-tested-label:
+    description: 'The name of the staging QA tested label'
+    default: '3A: QA Tested (Staging)'
   merge-label:
     description: 'The name of the merge label'
     default: '5: Ready for merge'
