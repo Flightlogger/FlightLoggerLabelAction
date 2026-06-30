@@ -75,6 +75,10 @@ async function handleStatusEvent(client: github.GitHub, payload: WebhookPayload)
   for (const branch of branches) {
     const pulls = await client.pulls.list({ owner, repo, state: "open", head: `${owner}:${branch.name}` });
     for (const pull of pulls.data) {
+      if (pull.draft) {
+        console.log(`Skipping draft PR #${pull.number} for branch '${branch.name}'.`);
+        continue;
+      }
       console.log(`Found open PR #${pull.number} for branch '${branch.name}'.`);
       await labelPullRequestAndLinkedIssues(client, pull.number, pull.body, reviewLabel);
     }
