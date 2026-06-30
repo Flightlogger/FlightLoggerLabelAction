@@ -1,6 +1,6 @@
 # FlightLogger Label Action
 
-This action labels pull requests and their linked issues if the pull request comment contains a certain trigger.
+This action labels pull requests and their linked issues based on CI status and review events.
 
 It could be used by other repos, but it is really only designed for internal use at FlightLogger.
 
@@ -24,12 +24,6 @@ Afterwards you need to git add the dist/index.js file
 
 **Required** Token for accessing repository.
 
-### `review-trigger`
-
-The string that triggers the review label
-
-**Default:** 'please review'
-
 ### `merge-label`
 
 The name of the merge label
@@ -38,7 +32,7 @@ The name of the merge label
 
 ### `review-label`
 
-The name of the review label
+The name of the review label. This label is added automatically to the pull request and its linked issues when the commit's combined CI status turns green (all GitHub commit statuses == success). It is removed automatically ONLY when a review requests changes.
 
 **Default:** '6: PR for review'
 
@@ -50,10 +44,11 @@ In production: (Rememeber to update the version tag)
 name: "FlightBot"
 
 on: 
-  pull_request:
-    types: [opened, edited, ready_for_review, review_requested]
+  issues:
+    types: [reopened]
+  status:
   pull_request_review:
-    types: [submitted, dismissed]
+    types: [submitted]
 
 jobs:
   triage:
@@ -64,23 +59,21 @@ jobs:
         uses: Flightlogger/FlightLoggerLabelAction@v1.2
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          review-trigger: "please review"
           merge-label: "5: Ready for merge"
           review-label: "6: PR for review"
 ```
 
-In development: (Uses the action version in the PR. Also listens on more event that could be used for future )
+In development: (Uses the action version in the PR.)
 
 ```yml
 name: "FlightBot"
 
 on: 
-  pull_request:
-    types: [opened, edited, review_requested]
+  issues:
+    types: [reopened]
+  status:
   pull_request_review:
-    types: [submitted, edited, dismissed]
-  pull_request_review_comment:
-    types: [created, edited, deleted]
+    types: [submitted]
 
 jobs:
   triage:
@@ -93,7 +86,6 @@ jobs:
         uses: ./
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          review-trigger: "please review"
           merge-label: "5: Ready for merge"
           review-label: "6: PR for review"
 ```
