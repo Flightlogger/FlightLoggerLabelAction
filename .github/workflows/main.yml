@@ -1,12 +1,11 @@
 name: "FlightBot"
 
-on: 
+on:
   issues:
     types: [reopened]
-  pull_request:
-    types: [opened, edited, ready_for_review, review_requested]
+  status:
   pull_request_review:
-    types: [submitted, edited, dismissed]
+    types: [submitted]
 
 jobs:
   triage:
@@ -19,7 +18,6 @@ jobs:
         uses: ./
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          review-trigger: "please review"
           staging-label: "4: Staging"
           merge-label: "5: Ready for merge"
           review-label: "6: PR for review"

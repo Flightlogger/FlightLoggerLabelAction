@@ -1,31 +1,25 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
-import { labelPRAndLinkedIssues, removeLabelFromPRAndLinkedIssues, addLabels, removeLabel } from "./labeler";
-
-// event: pull_request
-// types: [opened, edited, ready_for_review, review_requested]
-const PULL_REQUEST_EVENT = "pull_request";
-const OPENED_TYPE = "opened";
-const EDITED_TYPE = "edited";
-const READY_FOR_REVIEW_TYPE = "ready_for_review";
-const REVIEW_REQUESTED_TYPE = "review_requested";
-const PR_TEXT_EDITED_ACTIONS = [OPENED_TYPE, EDITED_TYPE];
+import { labelPRAndLinkedIssues, labelPullRequestAndLinkedIssues, removeLabelFromPRAndLinkedIssues, addLabels, removeLabel } from "./labeler";
 
 // event: pull_request_review:
-// types: [submitted, edited, dismissed]
+// types: [submitted]
 const PULL_REQUEST_REVIEW_EVENT = "pull_request_review";
 const SUBMITTED_TYPE = "submitted";
-const DISMISSED_TYPE = "dismissed";
 const APPROVED_STATE = "approved";
+const CHANGES_REQUESTED_STATE = "changes_requested";
 
 // event: issues:
 // types: [reopened]
 const ISSUES_EVENT = "issues";
 const REOPENED_TYPE = "reopened";
 
+// event: status
+const STATUS_EVENT = "status";
+const SUCCESS_STATE = "success";
+
 const REPO_TOKEN = "repo-token";
-const REVIEW_TRIGGER = "review-trigger";
 const REOPEN_LABEL = "reopen-label";
 const REVIEW_LABEL = "review-label";
 const MERGE_LABEL = "merge-label";
@@ -41,8 +35,8 @@ async function run() {
     const client = new github.GitHub(token);
 
     // Handle events
-    if (context.eventName == PULL_REQUEST_EVENT) {
-      await handlePullRequestEvent(client, payload);
+    if (context.eventName == STATUS_EVENT) {
+      await handleStatusEvent(client, payload);
     } else if (context.eventName == PULL_REQUEST_REVIEW_EVENT) {
       await handlePullRequestReviewEvent(client, payload);
     } else if (context.eventName == ISSUES_EVENT) {
@@ -54,47 +48,49 @@ async function run() {
   }
 }
 
-async function handlePullRequestEvent(client: github.GitHub, payload: WebhookPayload) {
+async function handleStatusEvent(client: github.GitHub, payload: WebhookPayload) {
+  // The individual status that just changed must itself be success; if not, the
+  // combined status can't be success yet, so skip the extra API call.
+  if (payload.state != SUCCESS_STATE) {
+    console.log(`Status '${payload.context}' is '${payload.state}', not success. Skipping.`);
+    return;
+  }
+
+  const owner = github.context.repo.owner;
+  const repo = github.context.repo.repo;
+  const sha = payload.sha;
+
+  const combined = await client.repos.getCombinedStatusForRef({ owner, repo, ref: sha });
+  if (combined.data.state != SUCCESS_STATE) {
+    console.log(`Combined status for ${sha} is '${combined.data.state}', not success. Skipping.`);
+    return;
+  }
+
   const reviewLabel = core.getInput(REVIEW_LABEL, { required: true });
+  console.log(`Combined status for ${sha} is success. Adding review label to associated open PRs...`);
 
-  if (payload.action == READY_FOR_REVIEW_TYPE) {
-    console.log(`Draft PR marked as ready for review. Adding review label...`);
-    await labelPRAndLinkedIssues(client, payload, reviewLabel);
-    return;
-  }
-
-  if (payload.action == REVIEW_REQUESTED_TYPE) {
-    console.log(`Requested review for PR. Adding review label...`);
-    await labelPRAndLinkedIssues(client, payload, reviewLabel);
-    return;
-  }
-
-  const reviewTrigger = core.getInput(REVIEW_TRIGGER, { required: true });
-  const prBody = payload.pull_request.body.toLowerCase();
-  if (PR_TEXT_EDITED_ACTIONS.includes(payload.action) && prBody.includes(reviewTrigger.toLowerCase())) {
-    console.log(`Found review trigger '${reviewTrigger}' in PR body. Adding review label...`);
-    await labelPRAndLinkedIssues(client, payload, reviewLabel);
-    return;
+  const branches = payload.branches || [];
+  // The `${owner}:${branch.name}` head filter only matches same-repo (non-fork) branches.
+  // Fork PRs are intentionally not handled, since this action runs on an internal repo.
+  for (const branch of branches) {
+    const pulls = await client.pulls.list({ owner, repo, state: "open", head: `${owner}:${branch.name}` });
+    for (const pull of pulls.data) {
+      console.log(`Found open PR #${pull.number} for branch '${branch.name}'.`);
+      await labelPullRequestAndLinkedIssues(client, pull.number, pull.body, reviewLabel);
+    }
   }
 }
 
 async function handlePullRequestReviewEvent(client: github.GitHub, payload: WebhookPayload) {
-  const reviewLabel = core.getInput(REVIEW_LABEL, { required: true });
-
-  if (payload.action == DISMISSED_TYPE) {
-    console.log(`Previous review dismissed. Adding review label...`);
-    await labelPRAndLinkedIssues(client, payload, reviewLabel);
-    return;
-  }
-
-  if (payload.action == SUBMITTED_TYPE && payload.review && payload.review.state != APPROVED_STATE) {
-    console.log(`Non-approval review submitted. Removing review label...`);
+  if (payload.action == SUBMITTED_TYPE && payload.review && payload.review.state == CHANGES_REQUESTED_STATE) {
+    const reviewLabel = core.getInput(REVIEW_LABEL, { required: true });
+    console.log(`Changes requested. Removing review label...`);
     await removeLabelFromPRAndLinkedIssues(client, payload, reviewLabel);
     return;
   }
 
-  const mergeLabel = core.getInput(MERGE_LABEL, { required: true });
   if (payload.action == SUBMITTED_TYPE && payload.review && payload.review.state == APPROVED_STATE) {
+    const mergeLabel = core.getInput(MERGE_LABEL, { required: true });
     console.log(`Approval review submitted. Added merge label...`);
     await labelPRAndLinkedIssues(client, payload, mergeLabel);
     return;
