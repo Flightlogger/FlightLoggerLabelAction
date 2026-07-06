@@ -19,11 +19,18 @@ const REOPENED_TYPE = "reopened";
 const STATUS_EVENT = "status";
 const SUCCESS_STATE = "success";
 
+// event: check_run
+// types: [completed]
+const CHECK_RUN_EVENT = "check_run";
+const COMPLETED_TYPE = "completed";
+const OK_CONCLUSIONS = ["success", "neutral", "skipped"];
+
 const REPO_TOKEN = "repo-token";
 const REOPEN_LABEL = "reopen-label";
 const REVIEW_LABEL = "review-label";
 const MERGE_LABEL = "merge-label";
 const STAGING_LABEL = "staging-label";
+const OWN_CHECK_NAME = "own-check-name";
 
 async function run() {
   try {
@@ -37,6 +44,8 @@ async function run() {
     // Handle events
     if (context.eventName == STATUS_EVENT) {
       await handleStatusEvent(client, payload);
+    } else if (context.eventName == CHECK_RUN_EVENT) {
+      await handleCheckRunEvent(client, payload);
     } else if (context.eventName == PULL_REQUEST_REVIEW_EVENT) {
       await handlePullRequestReviewEvent(client, payload);
     } else if (context.eventName == ISSUES_EVENT) {
@@ -48,9 +57,40 @@ async function run() {
   }
 }
 
+// The legacy Commit Status API (what getCombinedStatusForRef reads) and the
+// newer Check Runs API (what Actions-based checks like Codacy/Aikido/this
+// action itself post to) are two separate signals GitHub does not combine.
+// A commit can show a successful "combined status" while Check Runs are
+// still running or have failed. Both must be green before a PR is really
+// ready for review.
+async function isRefFullyGreen(client: github.GitHub, owner: string, repo: string, sha: string, ownCheckName: string): Promise<boolean> {
+  const combined = await client.repos.getCombinedStatusForRef({ owner, repo, ref: sha });
+  if (combined.data.state != SUCCESS_STATE) {
+    console.log(`Combined status for ${sha} is '${combined.data.state}', not success. Skipping.`);
+    return false;
+  }
+
+  const checkRuns = await client.checks.listForRef({ owner, repo, ref: sha });
+  for (const checkRun of checkRuns.data.check_runs) {
+    if (checkRun.name == ownCheckName) {
+      continue;
+    }
+    if (checkRun.status != COMPLETED_TYPE) {
+      console.log(`Check run '${checkRun.name}' for ${sha} is '${checkRun.status}', not completed. Skipping.`);
+      return false;
+    }
+    if (!OK_CONCLUSIONS.includes(checkRun.conclusion)) {
+      console.log(`Check run '${checkRun.name}' for ${sha} concluded '${checkRun.conclusion}'. Skipping.`);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 async function handleStatusEvent(client: github.GitHub, payload: WebhookPayload) {
   // The individual status that just changed must itself be success; if not, the
-  // combined status can't be success yet, so skip the extra API call.
+  // combined status can't be success yet, so skip the extra API calls.
   if (payload.state != SUCCESS_STATE) {
     console.log(`Status '${payload.context}' is '${payload.state}', not success. Skipping.`);
     return;
@@ -59,15 +99,14 @@ async function handleStatusEvent(client: github.GitHub, payload: WebhookPayload)
   const owner = github.context.repo.owner;
   const repo = github.context.repo.repo;
   const sha = payload.sha;
+  const ownCheckName = core.getInput(OWN_CHECK_NAME, { required: true });
 
-  const combined = await client.repos.getCombinedStatusForRef({ owner, repo, ref: sha });
-  if (combined.data.state != SUCCESS_STATE) {
-    console.log(`Combined status for ${sha} is '${combined.data.state}', not success. Skipping.`);
+  if (!(await isRefFullyGreen(client, owner, repo, sha, ownCheckName))) {
     return;
   }
 
   const reviewLabel = core.getInput(REVIEW_LABEL, { required: true });
-  console.log(`Combined status for ${sha} is success. Adding review label to associated open PRs...`);
+  console.log(`All statuses and check runs for ${sha} are green. Adding review label to associated open PRs...`);
 
   const branches = payload.branches || [];
   // The `${owner}:${branch.name}` head filter only matches same-repo (non-fork) branches.
@@ -82,6 +121,49 @@ async function handleStatusEvent(client: github.GitHub, payload: WebhookPayload)
       console.log(`Found open PR #${pull.number} for branch '${branch.name}'.`);
       await labelPullRequestAndLinkedIssues(client, pull.number, pull.body, reviewLabel);
     }
+  }
+}
+
+async function handleCheckRunEvent(client: github.GitHub, payload: WebhookPayload) {
+  const checkRun = (payload as any).check_run;
+  if (payload.action != COMPLETED_TYPE || !checkRun) {
+    return;
+  }
+
+  const ownCheckName = core.getInput(OWN_CHECK_NAME, { required: true });
+  if (checkRun.name == ownCheckName) {
+    console.log(`Ignoring completion of own check run '${checkRun.name}'.`);
+    return;
+  }
+
+  if (!OK_CONCLUSIONS.includes(checkRun.conclusion)) {
+    console.log(`Check run '${checkRun.name}' concluded '${checkRun.conclusion}', not ok. Skipping.`);
+    return;
+  }
+
+  const owner = github.context.repo.owner;
+  const repo = github.context.repo.repo;
+  const sha = checkRun.head_sha;
+
+  if (!(await isRefFullyGreen(client, owner, repo, sha, ownCheckName))) {
+    return;
+  }
+
+  const reviewLabel = core.getInput(REVIEW_LABEL, { required: true });
+  console.log(`All statuses and check runs for ${sha} are green. Adding review label to associated open PRs...`);
+
+  const associatedPulls = checkRun.pull_requests || [];
+  for (const associatedPull of associatedPulls) {
+    const pull = await client.pulls.get({ owner, repo, pull_number: associatedPull.number });
+    if (pull.data.state != "open") {
+      continue;
+    }
+    if (pull.data.draft) {
+      console.log(`Skipping draft PR #${pull.data.number}.`);
+      continue;
+    }
+    console.log(`Found open PR #${pull.data.number} for check run '${checkRun.name}'.`);
+    await labelPullRequestAndLinkedIssues(client, pull.data.number, pull.data.body, reviewLabel);
   }
 }
 

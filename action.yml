@@ -16,6 +16,9 @@ inputs:
   reopen-label:
     description: 'The name of the reopen label'
     default: 'Reopen'
+  own-check-name:
+    description: 'The name of the check run this action itself runs as, excluded when checking whether all check runs on a commit are green'
+    default: 'Label PR and Issues'
 runs:
   using: 'node12'
   main: 'dist/index.js'
