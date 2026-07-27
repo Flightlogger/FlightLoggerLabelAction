@@ -1,7 +1,7 @@
 import * as github from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 
-const LINKED_ISSUES_REGEX = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #(\d+)/gi;
+const LINKED_ISSUES_REGEX = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):? #(\d+)/gi;
 const REGEX_MATCH_ID_INDEX = 2;
 
 export async function labelPullRequestAndLinkedIssues(client: github.GitHub, prNumber: number, body: string, label: string) {
