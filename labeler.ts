@@ -4,15 +4,19 @@ import { WebhookPayload } from "@actions/github/lib/interfaces";
 const LINKED_ISSUES_REGEX = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #(\d+)/gi;
 const REGEX_MATCH_ID_INDEX = 2;
 
-export async function labelPRAndLinkedIssues(client: github.GitHub, payload: WebhookPayload, label: string) {
-  const pullRequest = payload.pull_request;
-  const linkedIssues = getLinkedIssues(pullRequest.body);
-  console.log(`Adding '${label}' label to PR: ${pullRequest.number}...`);
-  await addLabels(client, pullRequest.number, [label]);
+export async function labelPullRequestAndLinkedIssues(client: github.GitHub, prNumber: number, body: string, label: string) {
+  const linkedIssues = getLinkedIssues(body || "");
+  console.log(`Adding '${label}' label to PR: ${prNumber}...`);
+  await addLabels(client, prNumber, [label]);
   linkedIssues.forEach(async value => {
     console.log(`Adding '${label}' label to issue: ${value}...`);
     await addLabels(client, value, [label]);
   });
+}
+
+export async function labelPRAndLinkedIssues(client: github.GitHub, payload: WebhookPayload, label: string) {
+  const pullRequest = payload.pull_request;
+  await labelPullRequestAndLinkedIssues(client, pullRequest.number, pullRequest.body, label);
 }
 
 export async function removeLabelFromPRAndLinkedIssues(client: github.GitHub, payload: WebhookPayload, label: string) {
