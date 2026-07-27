@@ -25376,7 +25376,7 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
     });
 };
 
-const LINKED_ISSUES_REGEX = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #(\d+)/gi;
+const LINKED_ISSUES_REGEX = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):? #(\d+)/gi;
 const REGEX_MATCH_ID_INDEX = 2;
 function labelPullRequestAndLinkedIssues(client, prNumber, body, label) {
     return __awaiter(this, void 0, void 0, function* () {
